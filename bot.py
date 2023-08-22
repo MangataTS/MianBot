@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import json
 
 import nonebot
 from nonebot.adapters.onebot.v11 import Adapter
@@ -27,6 +28,9 @@ nonebot.load_from_toml("pyproject.toml")
 #
 # config = driver.config
 # do something...
+
+# 这里初始化MianConfig.json
+
 
 
 if __name__ == "__main__":
