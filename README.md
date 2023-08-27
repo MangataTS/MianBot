@@ -6,9 +6,10 @@
 
 ## 预计实现功能
 
-- [x] 用户的战绩查询（AC、WA、TLE、MLE、RE、CE、SE的次数）
+- [x] 用户的战绩查询（AC、WA、TLE、MLE、RE、CE、SE的次数，还有一些其他的信息）
 - [x] 平台最近x小时提交数量（个人+全部）
-- [ ] 每日一题
+- [ ] 每日一题&随机一题（默认从训练题单中抽取）
+- [ ] 各大OJ比赛查询（之前用的是API，后面会用爬虫实现一遍）
 - [ ] 每日固定时间报备平台活跃量
 - [ ] 用户发布讨论贴时在群中同步发出
 - [ ] 作业推送(创建时推送到群里)
@@ -18,29 +19,43 @@
 - [ ] 权限分配
 
 
+
 ## 使用说明
 暂无，等多实现几个功能后再说，配置文件是 `MianConfig.json`，需要自己创建一个，并放在根目录（`bot.py`同目录），格式如下，目前正在思考
 ```json
 {
     "Hydro": {
-      "Host": "42.193.50.191",
+      "Url": "",
+      "Host": "",
       "Port": 27017,
       "username": "hydro",
-      "password": "ufaRqx7vkR2KgjUDkHeOuihX7NZVwR9z",
+      "password": "",
       "authSource": "hydro",
       "timeOff": 8
-    }
+    },
+    "TrainProblem": [""]
 }
 ```
-其中可能需要解释的是`timeOff`，这个是数据库偏移正常时间的量，可以百度一下，一般是8h，如果不偏移就设置为0即可
+其中可能需要解释的是，
+
+- `Url` ：填入主页的完整网址，eg:`http://acm.mangata.ltd/`
+- `Host`：填入服务器的IP（如果端口不是80的话需要再加上端口）
+- `Port`：填入数据库端口，一般默认27017
+- `username`：填入数据库的用户名，一般就是`hydro`不用管
+- `password`：填入数据库的密码，这个可以用root权限查看`/root/.hydro/config.json`文件
+- `authSource`：不用管
+- `timeOff`：这个是数据库偏移正常时间的量，可以百度一下，一般是8h，如果不偏移就设置为0即可
+- `TrainProblem`：这个是加入每日一题or随机一题的训练题单的ID列表
 
 命令：
 
 - `commit uid hour` 表示的是查询UID最近hour小时的提交数量，eg：`commit 3 24` 表示的就是查询uid为3的用户最近24h的提交数量
 - `user uid` 表示的是查询UID的提交战绩（AC、WA、TLE、MLE、RE、CE、SE的次数）
+- `coding` 随机给你挑选一题（当然是本OJ的）
 
 
 ## 更新日志
 
+- 2023.8.28 新增了关于随机一题的内容，并且修复了之前的一些小bug，更新了REDEME文件
 - 2023.8.24 实现xx最近xx小时的提交查询
 - 2023.8.23 实现用户的战绩查询，提出某些预计实现功能
