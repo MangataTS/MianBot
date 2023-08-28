@@ -1,3 +1,6 @@
+import re
+from xml import etree
+
 import nonebot
 from nonebot import require
 from nonebot.adapters.onebot.v11 import MessageSegment
@@ -28,7 +31,7 @@ myclient = pymongo.MongoClient(MianConfig['Hydro']['Host'], MianConfig['Hydro'][
 mydb = myclient["hydro"]
 
 
-def record_query(uid: int):
+def user_commit_record_query(uid: int):
     mycol = mydb["record"]
     usrcol = mydb["user"]
     CountNum = {}
@@ -45,13 +48,72 @@ def record_query(uid: int):
            "CE": CountNum[7], "SE": CountNum[8], "name": name}
     return ans
 
+def honor(num:int):
+    if num <= 50:
+        return "坚韧黑铁"
+    elif num <= 150:
+        return "英勇黄铜"
+    elif num <= 300:
+        return "不屈白银"
+    elif num <= 500:
+        return "荣耀黄金"
+    elif num <= 650:
+        return "华贵铂金"
+    elif num <= 800:
+        return "璀璨钻石"
+    elif num <= 1000:
+        return "超凡大师"
+    elif num <= 1500:
+        return "傲世宗师"
+    else:
+        return "最强王者"
+
+def get_usr(id:int):
+    url="http://acm.mangata.ltd/user/"+str(id)
+    ua_headers = {"User-Agent": 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'}
+    # 网页代码
+    response = requests.get(url=url, headers=ua_headers).text
+    # 转换为etree对象
+    tree = etree.HTML(response)
+    img_lst = tree.xpath('//*[@id="panel"]/div[3]/div/div[1]/div[1]/div[1]/div/div/div[2]/p[2]/text()')
+    message = img_lst[0].split(',')
+    slove_problem=int(re.findall("\d+", message[0])[0])
+    return "\n[当前段位]： [" + honor(slove_problem)+"]"
+
+def get_user_info_from_name(sname:str):
+    url = MianConfig['Url'] + "/api/?"
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'
+    }
+    query = "query {user(uname: \"" + sname + "\") {uname,mail,loginat,regat,role,avatarUrl,_id}}"
+    url = url + query
+    val = requests.get(url, headers=headers)
+    res = json.loads(val.content)
+    it = res['data']['user']
+    ans = ""
+    if res['data']['user'] == None:
+        ans = ans + "查无此人"
+    else:
+        id = it['_id']
+        ans = "\n[用户昵称]： [" + it['uname'] + "]"
+        ans = ans + str(get_usr(id))
+        ans = ans + "\n[上次登陆]： [" + it['loginat'] + "]"
+        ans = ans + "\n[注册时间]： [" + it['regat'] + "]"
+        ans = ans + "\n[用户身份]： [" + it['role'] + "]"
+        qq = str(it['mail'])
+        ava = "https://q1.qlogo.cn/g?b=qq&nk="
+        if qq.find("@qq.com") == -1:
+            ava = "http://acm.mangata.ltd/file/2/12.jpg"
+        else:
+            qq = qq.strip('@qq.com')
+            ava = ava + qq + "&s=160"
 
 # TODO 战绩查询还需要参考之前的设计
 UserRecord = on_command("user", rule=to_me(), aliases={"战绩", "查战绩", "战绩查询"}, priority=10, block=True)
 @UserRecord.handle()
 async def handle_record_query(args: Message = CommandArg()):
     if uid := args.extract_plain_text():
-        ans = record_query(int(uid))
+        ans = user_commit_record_query(int(uid))
         rs = str(ans["name"]) + "\n战绩如下：\n" + "AC:\t" + str(ans["AC"]) + "\nWA:\t" + str(ans["WA"]) + "\nTLE:\t" + str(
             ans["TLE"]) + "\nMLE:\t" + \
              str(ans["MLE"]) + "\nRE:\t" + str(ans["RE"]) + "\nCE:\t" + str(ans["CE"]) + "\nSE:\t" + str(ans["SE"])
@@ -60,7 +122,7 @@ async def handle_record_query(args: Message = CommandArg()):
 
 @UserRecord.got("uid", prompt="请输入查询用户的UID")
 async def got_record_query(uid: str = ArgPlainText()):
-    ans = record_query(int(uid))
+    ans = user_commit_record_query(int(uid))
     rs = str(ans["name"]) + "\n战绩如下：\n" + "AC:\t" + str(ans["AC"]) + "\nWA:\t" + str(ans["WA"]) + "\nTLE:\t" + str(
         ans["TLE"]) + "\nMLE:\t" + \
          str(ans["MLE"]) + "\nRE:\t" + str(ans["RE"]) + "\nCE:\t" + str(ans["CE"]) + "\nSE:\t" + str(ans["SE"])
