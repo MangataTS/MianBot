@@ -1,3 +1,9 @@
+import nonebot
+from nonebot import require
+from nonebot.adapters.onebot.v11 import MessageSegment
+
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
 import json
 import random
 import pymongo
@@ -9,7 +15,7 @@ from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from datetime import datetime, timedelta
 import requests
-
+from nonebot import logger
 with open('MianConfig.json') as file:
     data = json.load(file)
 print(data)
@@ -156,7 +162,7 @@ def query_traing_problem(Useconfig=False):
     return unique_list
 
 
-# 获取题目信息 TODO 后面添加题解、讨论数量指标
+# 获取题目信息 TODO 后面添加题解、讨论数量指标，题目难度需要单独用爬虫爬取
 def get_problem_info(id: str):
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'
@@ -189,11 +195,35 @@ def get_problem_info(id: str):
         ans = ans + "\n骚年快来挑战吧！别忘了写题解噢！"
         return ans
 
+def get_rand_problem():
+    pids = query_traing_problem()
+    randp = random.randint(0, len(pids) - 1)
+    return get_problem_info(str(randp))
+
 
 RandProblem = on_command("coding", rule=to_me(), aliases={"tw"}, priority=10, block=True)
 
 @RandProblem.handle()
 async def handle_rand_problem(args: Message = CommandArg()):
-    pids = query_traing_problem()
-    randp = random.randint(0, len(pids) - 1)
-    await RandProblem.finish(get_problem_info(str(randp)))
+    await RandProblem.finish(get_rand_problem())
+
+###########################################################
+##              分割线，下面的内容是定时任务                  ##
+###########################################################
+
+# TODO 定时任务的一些时间设置后续放在Mianconfig.json中
+@scheduler.scheduled_job('cron', hour='13',minute='16', id='problem')
+async def problem():
+    bot = nonebot.get_bot()
+    text = "\n快冲！今天的每日一题：\n"
+    text = text + get_rand_problem()
+    url = 'http://acm.mangata.ltd/file/2/learn.jpg'
+    group_id_list = MianConfig['ServiceGroupList']
+    for id in group_id_list:
+        try:
+            await bot.send_group_msg(
+                group_id=int(id),
+                message=MessageSegment.image(url) + text
+            )
+        except Exception as e:
+            logger.warning("scheduled_job dayliy error:",e,"QQID: ",id)
