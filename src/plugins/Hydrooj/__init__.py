@@ -116,14 +116,13 @@ UserRecord = on_command("user", rule=to_me(), aliases={"战绩", "查战绩", "�
 async def handle_record_query(args: Message = CommandArg()):
     if uid := args.extract_plain_text():
         ava,ans = user_info_query(int(uid))
-        print(ans)
         await UserRecord.finish(MessageSegment.image(ava)+str(ans))
 
 
 @UserRecord.got("uid", prompt="请输入查询用户的UID")
 async def got_record_query(uid: str = ArgPlainText()):
-    ans = user_commit_record_query(int(uid))
-    await UserRecord.finish(str(ans))
+    ava, ans = user_info_query(int(uid))
+    await UserRecord.finish(MessageSegment.image(ava) + str(ans))
 
 
 # 服务器时区偏差需要 ＋ 8hour，

@@ -42,7 +42,10 @@
 
 
 ## 使用说明
-暂无，等多实现几个功能后再说，配置文件是 `MianConfig.json`，需要自己创建一个，并放在根目录（`bot.py`同目录），格式如下，目前正在思考
+### Nonebot配置
+
+暂无，等多实现几个功能后再说，Nonebot部分的配置文件是 `MianConfig.json`，需要自己创建一个，并放在根目录（`bot.py`同目录），格式如下，目前正在思考
+
 ```json
 {
     "Hydro": {
@@ -72,7 +75,15 @@
 
 <hr>
 
-命令：
+### go-cqhttp配置
+
+首先给出`go-cqhttp`的官网链接：[https://docs.go-cqhttp.org/](https://docs.go-cqhttp.org/) ，这个的配置文件是`config.yml`
+
+- uin：替换成你自己的QQ
+- password：替换成你的QQ的密码
+- universal：注意这里的端口即可，需要于Nonebot的`.env.dev`或者`.env.prod`相同即可
+
+### 使用命令：
 
 - `/commit uid hour` 表示的是查询UID最近hour小时的提交数量，eg：`commit 3 24` 表示的就是查询uid为3的用户最近24h的提交数量
 - `/user uid` 表示的是查询UID的提交战绩（AC、WA、TLE、MLE、RE、CE、SE的次数）
