@@ -31,23 +31,7 @@ myclient = pymongo.MongoClient(MianConfig['Hydro']['Host'], MianConfig['Hydro'][
 mydb = myclient["hydro"]
 
 
-def user_commit_record_query(uid: int):
-    mycol = mydb["record"]
-    usrcol = mydb["user"]
-    CountNum = {}
-    for i in range(9):
-        CountNum[i] = 0;
-    for x in mycol.find({"uid": uid}):
-        status = int(x['status'])
-        if CountNum.get(status) == None:
-            CountNum[status] = 1
-        else:
-            CountNum[status] = CountNum.get(status) + 1
-    name = str(usrcol.find_one({"_id": uid})['uname'])
-    ans = {"AC": CountNum[1], "WA": CountNum[2], "TLE": CountNum[3], "MLE": CountNum[4], "RE": CountNum[6],
-           "CE": CountNum[7], "SE": CountNum[8], "name": name}
-    return ans
-
+# TODO 后面的荣誉根据rank表动态变化
 def honor(num:int):
     if num <= 50:
         return "坚韧黑铁"
@@ -68,65 +52,78 @@ def honor(num:int):
     else:
         return "最强王者"
 
-def get_usr(id:int):
-    url="http://acm.mangata.ltd/user/"+str(id)
-    ua_headers = {"User-Agent": 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)'}
-    # 网页代码
-    response = requests.get(url=url, headers=ua_headers).text
-    # 转换为etree对象
-    tree = etree.HTML(response)
-    img_lst = tree.xpath('//*[@id="panel"]/div[3]/div/div[1]/div[1]/div[1]/div/div/div[2]/p[2]/text()')
-    message = img_lst[0].split(',')
-    slove_problem=int(re.findall("\d+", message[0])[0])
-    return "\n[当前段位]： [" + honor(slove_problem)+"]"
-
-def get_user_info_from_name(sname:str):
-    url = MianConfig['Url'] + "/api/?"
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.146 Safari/537.36'
-    }
-    query = "query {user(uname: \"" + sname + "\") {uname,mail,loginat,regat,role,avatarUrl,_id}}"
-    url = url + query
-    val = requests.get(url, headers=headers)
-    res = json.loads(val.content)
-    it = res['data']['user']
-    ans = ""
-    if res['data']['user'] == None:
-        ans = ans + "查无此人"
-    else:
-        id = it['_id']
-        ans = "\n[用户昵称]： [" + it['uname'] + "]"
-        ans = ans + str(get_usr(id))
-        ans = ans + "\n[上次登陆]： [" + it['loginat'] + "]"
-        ans = ans + "\n[注册时间]： [" + it['regat'] + "]"
-        ans = ans + "\n[用户身份]： [" + it['role'] + "]"
-        qq = str(it['mail'])
-        ava = "https://q1.qlogo.cn/g?b=qq&nk="
-        if qq.find("@qq.com") == -1:
-            ava = "http://acm.mangata.ltd/file/2/12.jpg"
+def user_commit_record_query(uid: int):
+    mycol = mydb["record"]
+    usrcol = mydb["user"]
+    CountNum = {}
+    for i in range(9):
+        CountNum[i] = 0;
+    sum = 0
+    for x in mycol.find({"uid": uid}):
+        status = int(x['status'])
+        sum = sum + 1
+        if CountNum.get(status) == None:
+            CountNum[status] = 1
         else:
-            qq = qq.strip('@qq.com')
+            CountNum[status] = CountNum.get(status) + 1
+    name = str(usrcol.find_one({"_id": uid})['uname'])
+    ans = {"AC": CountNum[1], "WA": CountNum[2], "TLE": CountNum[3], "MLE": CountNum[4], "RE": CountNum[6],
+           "CE": CountNum[7], "SE": CountNum[8], "name": name}
+    return sum,ans
+
+def user_info_query(uid: int):
+    collection = mydb['user']
+    query = {
+        '_id':uid
+    }
+    user = collection.find_one(query)
+    ans = ""
+    if user == None:
+        ans = "查无此人"
+    else:
+        ans = "\n[用户昵称]： [" + user['uname'] + "]"
+        # ans = ans + str(get_usr(int(uid)))
+        ans = ans + "\n[上次登陆]： [" + user['loginat'].strftime('%Y-%m-%d') + "]"
+        ans = ans + "\n[注册时间]： [" + user['regat'].strftime('%Y-%m-%d') + "]"
+        ans = ans + "\n[用户邮箱]： [" + user['mail'] + "]"
+        tolcommit,record = user_commit_record_query(uid)
+        ans = ans + "\n[当前段位]：[" + honor(tolcommit) + "]"
+        ans = ans + "\nAC: " + str(record["AC"]) + " WA: " + str(record["WA"]) + \
+                    "\nTLE: " + str(record["TLE"]) + " MLE: " + str(record["MLE"]) +\
+                    "\nRE: " + str(record["RE"]) + " CE: " + str(record["CE"]) + \
+                    "\nSE: " + str(record["SE"]) + " tol: " +str(tolcommit)
+
+        qq = str(user['avatar'])
+        # TODO 这里后面需要放在配置文件中，或者调本地的都行
+        ava = "https://q1.qlogo.cn/g?b=qq&nk="
+        if qq.find("qq") == -1:
+            if qq.find("url:") == -1:
+                ava = "http://acm.mangata.ltd/file/2/12.jpg"
+            else:
+                ava = qq.strip('url:')+"&s=160"
+        else:
+            qq = qq.strip('qq:')
             ava = ava + qq + "&s=160"
+    return ava,ans
+
+
+
+
 
 # TODO 战绩查询还需要参考之前的设计
 UserRecord = on_command("user", rule=to_me(), aliases={"战绩", "查战绩", "战绩查询"}, priority=10, block=True)
 @UserRecord.handle()
 async def handle_record_query(args: Message = CommandArg()):
     if uid := args.extract_plain_text():
-        ans = user_commit_record_query(int(uid))
-        rs = str(ans["name"]) + "\n战绩如下：\n" + "AC:\t" + str(ans["AC"]) + "\nWA:\t" + str(ans["WA"]) + "\nTLE:\t" + str(
-            ans["TLE"]) + "\nMLE:\t" + \
-             str(ans["MLE"]) + "\nRE:\t" + str(ans["RE"]) + "\nCE:\t" + str(ans["CE"]) + "\nSE:\t" + str(ans["SE"])
-        await UserRecord.finish(str(rs))
+        ava,ans = user_info_query(int(uid))
+        print(ans)
+        await UserRecord.finish(MessageSegment.image(ava)+str(ans))
 
 
 @UserRecord.got("uid", prompt="请输入查询用户的UID")
 async def got_record_query(uid: str = ArgPlainText()):
     ans = user_commit_record_query(int(uid))
-    rs = str(ans["name"]) + "\n战绩如下：\n" + "AC:\t" + str(ans["AC"]) + "\nWA:\t" + str(ans["WA"]) + "\nTLE:\t" + str(
-        ans["TLE"]) + "\nMLE:\t" + \
-         str(ans["MLE"]) + "\nRE:\t" + str(ans["RE"]) + "\nCE:\t" + str(ans["CE"]) + "\nSE:\t" + str(ans["SE"])
-    await UserRecord.finish(str(rs))
+    await UserRecord.finish(str(ans))
 
 
 # 服务器时区偏差需要 ＋ 8hour，
